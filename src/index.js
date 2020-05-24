@@ -1,0 +1,100 @@
+const express = require('express');
+require('./db/mongoose');
+const User = require('./models/users');
+const Task = require('./models/tasks')
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(express.json());
+
+app.post('/users', async (req, res) => {
+    const user = new User(req.body);
+    try{
+        await user.save();
+        res.status(201).send(user);
+    } catch (e) {
+        res.status(400).send(e);
+    }
+//    user.save().then(() => { 
+ //       res.send(user);
+ //   }).catch((e) => {
+//        res.status(400).send(e);
+//    });
+});
+
+app.get('/users', (req, res) =>{
+    try {
+        const users = await User.find({});
+        res.send(users)
+    } catch (e) {
+        res.status(500).send(e);
+    }
+//    User.find({}).then((users) => {
+//        res.send(users);
+//    }).catch((e) => {
+//        res.status(500).send(e);
+//    });
+});
+
+
+app.get('/users/:id', (req, res) => {
+    const idUser = req.params.id;
+    try {
+        const user = await User.findById({idUser});
+        if (!user){
+            return res.status(404).send();
+        }
+        res.send(user);
+    } catch (e) {
+        res.status(500).send(e);
+    }
+//    User.findById({idUser}).then((users) => {
+//        if (!user) {
+//            return res.status(404).send();
+//        }
+//        res.send(user);
+//    }).catch((e) => {
+//        res.status(500).send(e);
+//    });
+});
+
+
+app.post('/tasks', (req, res) => {
+    const task = new Task(req.body);
+    try {
+        await task.save();
+        res.status(201).send(task);
+    } catch (e) {
+        res.status(400).send(e);
+    }
+});
+
+
+app.get('/tasks/:id', (req, res) => {
+    const idTask = req.params.id;
+    try {
+        const task = await Task.findById({idTask});
+        if (!task){
+            return res.status(404).send();
+        }
+        res.send(task)
+    } catch(e) {
+        res.status(500).send(e);
+    }
+});
+
+
+app.get('/tasks', (req, res) => {
+    try {
+        const task = await Task.find({});
+        res.send(tasks);
+    } catch (e) {
+        res.status(500).send();
+    }
+});
+
+
+app.listen(port, () => {
+    console.log('Server is on port ' + port);
+});
