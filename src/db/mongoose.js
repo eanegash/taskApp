@@ -4,10 +4,10 @@ const mongoose = require('mongoose');
 //Mongose Connection
 const options = {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
     useCreateIndex: true,
-    useFindAndModify: false 
+    useFindAndModify: false,
+    useUnifiedTopology: true,
   };
 
-mongoose.connect(DB_CONNECTION, options);
+mongoose.connect(process.env.DB_CONNECTION, options);
 
