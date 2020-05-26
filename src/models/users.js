@@ -39,6 +39,8 @@ const userSchema = new mongoose.Schema({
             required: true
         }
     }]
+}, {
+    timestamps: true
 });
 
 //Virtual: Used to create an associate between foreign and local fields.

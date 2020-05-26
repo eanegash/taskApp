@@ -49,7 +49,7 @@ router.delete('/tasks/:id', auth, async (req, res) => {
     }
 });
 
-//Create a Task and associate it to th authenticated User (Logged in Owner).
+//Create a Task and associate it to the authenticated User (Logged in Owner).
 router.post('/tasks', auth, async (req, res) => {
     try {
         await req.user.populate('tasks').execPopulate();
@@ -73,11 +73,39 @@ router.get('/tasks/:id', auth, async (req, res) => {
     }
 });
 
-
-router.get('/tasks', async (req, res) => {
+//Completed: Have or haven't been completed. Action URL condition based (parameter). ---- GET /tasks?completed=...
+//Pagination: Limit number of returned tasks... options...limit:parseInt(...) ---- GET /tasks?limit=10
+//Skip: Number of returned tasks ---- GET /tasks?limit=10$skip=20
+//Sorting: GET /tasks?sortBy=createdAt:desc
+router.get('/tasks', auth, async (req, res) => {
+    //Empty object for sorting/match customization
+    const match = {}
+    const sort = {}
+    //Completed Logic. 
+    if (req.query.completed) {
+        //Shorthand used req.query is True then set completed to True.
+        match.completed = req.query.completed === 'true'
+    }
+    
+    if(req.query.sortBy){
+        const parts = req.query.sortBy.split(':');
+        //Ternary operator used to initiaze sort variable.
+        sort[parts[0]] = parts[1] === 'desc' ? -1 : 1 
+    }
+    
     try {
-        const task = await Task.find({});
-        res.send(tasks);
+        await req.user.populate({
+            path: 'tasks',
+            match: match,
+            options: {
+                limit: parseInt(req.query.limit), //Use URL value instead of Hardcode
+                skip: parseInt(req.query.skip), //Skip {skip} records then get the next {limit} records.
+                sort: {
+                    createdAt: -1 //Desc -1, Asc 1
+                }
+            }
+        }).execPopulate();
+        res.send(req.user.tasks);
     } catch (e) {
         res.status(500).send();
     }
