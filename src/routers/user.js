@@ -4,7 +4,7 @@ const auth = require('../middleware/authentication')
 const router = new express.Router();
 
 
-router.patch('/users/:id', async (req, res) => {
+router.patch('/users/me', auth, async (req, res) => {
     const updates = Object.keys(req.body);
     const allowedUpdates = ['name', 'email', 'password'];
     const validOperation = updates.every((update) => {
@@ -20,32 +20,24 @@ router.patch('/users/:id', async (req, res) => {
         //Commented out and refactored code. It was By Passing Midleware/Pre-Hooks for Bcrypt pwd Hash
         //const user = await User.findByIdAndUpdate(req.params.id, req.body, {new: true, runValidators: true});
         //Updated Logic to Update Value(s) in User Schema
-        const user = await User.findById(req.params.id);
         updates.forEach((update) => {
-            user[update] = req.body[update]
+            req.user[update] = req.body[update]
         });
-        await user.save()
+        await req.user.save()
 
-        if (!user) {
-            return res.status(404).send()
-        }
-        res.send(user)
+        res.send(req.user)
     } catch (e) {
         res.status(400).send(e);
     }
 });
 
 
-//Endpoint Handler, allows for removal of Users. Attempt to delete the User by id. 
+//Endpoint Handler, allows for User to delete their account. Attempt to delete the User by id. 
 // 1. Handle success 2. Handle user not found 3. Handle error
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/me', auth, async (req, res) => {
     try {
-        const user = await User.findByIdAndDelete(req.params.id)
-
-        if (!user){
-            return res.status(404).send();
-        }
-        res.send(user);
+        await req.user.remove();
+        res.send(req.user);
     }catch(e){
         res.status(500).send();
     }
@@ -68,9 +60,34 @@ router.post('/users/login', async(req, res) => {
     try {
         const user = await User.findUserByCredential(req.body.email, req.body.password);
         const token = await user.generateAuthToken();
-        res.send({user, token});
+        //Changed behavior. Method explicitly called to remove Password and Tokens from returned values. 
+        res.send({user: user.getPublicProfile, token});
     } catch (e){
         res.status(400).send();
+    }
+});
+
+//User able to logout of a specific session.  
+router.post('/users/logout', auth, async (req, res) => {
+    try {
+        req.user.tokens = req.user.tokens.filter((token) => {
+            //Return true when token currently looking at isn't used for authentication.
+            return token.token !== req.token;
+        });
+        await req.user.save();
+    }catch (e){
+        res.status(500).send()
+    }
+});
+
+//User logs out on all sessions
+router.post('/users/logoutAll', auth, async (req, res) => {
+    try {
+        req.user.tokens = [];
+        await req.user.save();
+        res.send();
+    }catch (e){
+        res.status(500).send()
     }
 });
 
