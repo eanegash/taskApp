@@ -14,8 +14,19 @@ app.listen(port, () => {
     console.log('Server is on port ' + port);
 });
 
-//HTTP Endpoints exist in Routers
+//HTTP ENDPOINTS exist in Routers
 //GET - To Read
 //POST - To Create
 //PATCH - To Update
 //DELETE - To Delete
+
+//MODELS SCHEMAs for Users and Tasks exist in Models
+//SCHEMAs
+//Middleware - Authentication Tokens exist in User for manipulation
+
+//AUTHENTICATION middleware for user authentication
+
+//DB CONNECTION exists in DB
+
+//File Loading exists in...
+//CMD: npm run dev - runs the dev center for testing multer and sharp

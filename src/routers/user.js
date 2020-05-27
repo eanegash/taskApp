@@ -1,4 +1,6 @@
 const express = require('express');
+const multer = require('multer');
+const sharp = require('sharp');
 const User = require('../models/users');
 const auth = require('../middleware/authentication')
 const router = new express.Router();
@@ -56,7 +58,7 @@ router.post('/users', async (req, res) => {
     }
 });
 
-router.post('/users/login', async(req, res) => {
+router.post('/users/login', async (req, res) => {
     try {
         const user = await User.findUserByCredential(req.body.email, req.body.password);
         const token = await user.generateAuthToken();
@@ -107,6 +109,56 @@ router.get('/users/:id', async (req, res) => {
         res.send(user);
     } catch (e) {
         res.status(500).send(e);
+    }
+});
+
+//Setup Endpoint for Avatar Upload and Creation
+const upload = multer({
+    //dest: 'avatars',
+    limits: {
+        fileSize: 1000000 //Restrict Users Upload to 1 megabyte = 1,000,000 byte
+    },
+    fileFilter(req, file, cb){
+        if (!file.original.name.match(/\.(jpg|jpeg|png)$/)){
+            return cb(new Error('File must be an image: jpg, jpeg, png.'))
+        } // conditional (!file.originalname.endsWith('.pdf'))
+        
+        cb(undefined, true)
+    }
+});
+router.post('/users/me/avatar', auth, upload.single("avatar"), async (req, res) => {
+    //Passed data to sharp and sharp sent it back converting image to png format and resizing format: Used to normalize all images.
+    //Now we must change code req.user.avatar = req.file.buffer to req.user.avatar = buffer
+    const buffer = await sharp(req.file.buffer).resize({width: 250, height: 250}).png.toBuffer() 
+
+    //By commenting/removing dest: 'avatar' options object. Multer library wont save images to avatar directory it will pass data through the function for access.
+    req.user.avatar = buffer; 
+    await req.user.save(); //Need async and await to save the req the file.
+    res.send(); 
+}, (error, req, res, next) => {
+    res.status(400).send({error: error.message})
+});
+
+//Route Endpoint to Delete avatar.
+router.delete('/uses/me/avatar', auth, async (req, res) => {
+    req.user.avatar = undefined;
+    await req.user.save();
+    res.send();
+});
+
+//Route Enpoint to serve the file/avatar
+router.get('/users/:id/avatar', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        //Check if no user or no user avatar. If true throw error. 
+        if(!user || !user.avatar){
+            throw new Error()
+        }
+        //Set a response header for the content type. Confident image type will be png as we have reformated images using sharp.
+        res.set('Content-Type', 'images/png');
+        res.send(user.avatar);
+    } catch (e){
+        res.status(404).send();
     }
 });
 
